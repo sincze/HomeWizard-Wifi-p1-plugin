@@ -2,10 +2,12 @@
 ##
 ##           Author:         Eraser
 ##           Version:        1.0.2
-##           Last modified:  31-05-2023
+##           Last modified:  26-08-2024
 ##
+##           Modified version for INDIRECT Metering. (sincze)
+
 """
-<plugin key="HomeWizardWifiP1MeterIndirect" name="HomeWizard Wi-Fi P1 Meter" author="Eraser" version="1.0.2" externallink="https://www.homewizard.nl/p1-meter">
+<plugin key="HomeWizardWifiP1MeterIndirect" name="HomeWizard Wi-Fi P1 Meter (Business)" author="Eraser" version="1.0.2" externallink="https://www.homewizard.n                                                                               l/p1-meter">
     <description>
 
     </description>
@@ -49,6 +51,7 @@ class BasePlugin:
     dataIntervalCount = 0
     usageSwitchValue = 0
     productionSwitchValue = 0
+    correction_factor = 1
 
     #Homewizard P1 meter variables
     wifi_strength = -1              #: [Number] De sterkte van het Wi-Fi signaal in %
@@ -74,9 +77,6 @@ class BasePlugin:
     import_active_power_w = 0       #: Het huidig vermogen wat momenteel van het net wordt geimporteerd.
     export_active_power_w = 0       #: Het huidig vermogen wat momenteel naar het net wordt geexporteerd.
 
-    # Correctionn factor for Business units
-    correction_factor = int(Parameters["Mode5"]) #: Het gaat hierbij om secundaire waarden. Voor het daadwerkelijke verbruik moet je de waarden vermenigvuldigen met de overzetverhouding van je meter.
-                                                 #: Deze overzetverhouding staat op eensticker bij je P1-kabel. (Voor grootzakelijke gemonitorde aansluitingen met indirecte meting)
     #Device ID's
     active_power_id = 101
     total_power_id = 102
@@ -121,6 +121,11 @@ class BasePlugin:
             # If not, set to 0 (means off)
             self.productionSwitchValue = 0
 
+
+        # Correctionn factor for Business units
+        self.correction_factor = int(Parameters["Mode5"]) #: Het gaat hierbij om secundaire waarden. Voor het daadwerkelijke verbruik moet je de waarden verme                                                                               nigvuldigen met de overzetverhouding van je meter.
+                                                          #: Deze overzetverhouding staat op eensticker bij je P1-kabel. (Voor grootzakelijke gemonitorde aans                                                                               luitingen met indirecte meting)
+
         # Start the heartbeat
         Domoticz.Heartbeat(self.pluginInterval)
 
@@ -134,24 +139,24 @@ class BasePlugin:
             Domoticz.Debug("Reading electricity values from input")
 
             self.wifi_strength = Data['wifi_strength']
-            self.total_power_import_t1_kwh = (int(Data['total_power_import_t1_kwh'] * 1000) * self.correction_factor)
-            self.total_power_export_t1_kwh = (int(Data['total_power_export_t1_kwh'] * 1000) * self.correction_factor)
+            self.total_power_import_t1_kwh = int(Data['total_power_import_t1_kwh'] * 1000 * self.correction_factor)
+            self.total_power_export_t1_kwh = int(Data['total_power_export_t1_kwh'] * 1000 * self.correction_factor)
             # Initialise the t2 variables if the power meter does not have a t2 tariff
             try:
-                self.total_power_import_t2_kwh = (int(Data['total_power_import_t2_kwh'] * 1000) * self.correction_factor)
-                self.total_power_export_t2_kwh = (int(Data['total_power_export_t2_kwh'] * 1000) * self.correction_factor)
+                self.total_power_import_t2_kwh = int(Data['total_power_import_t2_kwh'] * 1000 * self.correction_factor)
+                self.total_power_export_t2_kwh = int(Data['total_power_export_t2_kwh'] * 1000 * self.correction_factor)
             except:
                 self.total_power_import_t2_kwh = 0
                 self.total_power_export_t2_kwh = 0
 
-            self.active_power_w = Data['active_power_w']
+            self.active_power_w = Data['active_power_w'] * self.correction_factor
 
             if ( 'active_power_l1_w' in Data ): self.active_power_l1_w = Data['active_power_l1_w'] * self.correction_factor
             if ( 'active_power_l2_w' in Data ): self.active_power_l2_w = Data['active_power_l2_w'] * self.correction_factor
             if ( 'active_power_l3_w' in Data ): self.active_power_l3_w = Data['active_power_l3_w'] * self.correction_factor
-            if ( 'active_voltage_l1_v' in Data ): self.active_voltage_l1_v = float(Data['active_voltage_l1_v']) * self.correction_factor
-            if ( 'active_voltage_l2_v' in Data ): self.active_voltage_l2_v = float(Data['active_voltage_l2_v']) * self.correction_factor
-            if ( 'active_voltage_l3_v' in Data ): self.active_voltage_l3_v = float(Data['active_voltage_l3_v']) * self.correction_factor
+            if ( 'active_voltage_l1_v' in Data ): self.active_voltage_l1_v = float(Data['active_voltage_l1_v'])
+            if ( 'active_voltage_l2_v' in Data ): self.active_voltage_l2_v = float(Data['active_voltage_l2_v'])
+            if ( 'active_voltage_l3_v' in Data ): self.active_voltage_l3_v = float(Data['active_voltage_l3_v'])
             if ( 'active_current_l1_a' in Data ): self.active_current_l1_a = float(Data['active_current_l1_a']) * self.correction_factor
             if ( 'active_current_l2_a' in Data ): self.active_current_l2_a = float(Data['active_current_l2_a']) * self.correction_factor
             if ( 'active_current_l3_a' in Data ): self.active_current_l3_a = float(Data['active_current_l3_a']) * self.correction_factor
@@ -167,7 +172,7 @@ class BasePlugin:
 
             Domoticz.Debug("Calculating active power")
 
-            self.total_power = self.total_power_import_t1_kwh + self.total_power_import_t2_kwh - self.total_power_export_t1_kwh - self.total_power_export_t2_kwh
+            self.total_power = self.total_power_import_t1_kwh + self.total_power_import_t2_kwh - self.total_power_export_t1_kwh - self.total_power_export_t2_k                                                                               wh
 
             if ( self.active_power_w >= 0 ):
                 self.import_active_power_w = self.active_power_w
@@ -190,7 +195,7 @@ class BasePlugin:
                 if ( self.total_power_id not in Devices ):
                     Domoticz.Device(Name="Total power usage",  Unit=self.total_power_id, Type=250, Subtype=1).Create()
 
-                UpdateDevice(self.total_power_id, 0, numStr(self.total_power_import_t1_kwh) + ";" + numStr(self.total_power_import_t2_kwh) + ";" + numStr(self.total_power_export_t1_kwh) + ";" + numStr(self.total_power_export_t2_kwh) + ";" + numStr(self.import_active_power_w) + ";" + numStr(self.export_active_power_w), True)
+                UpdateDevice(self.total_power_id, 0, numStr(self.total_power_import_t1_kwh) + ";" + numStr(self.total_power_import_t2_kwh) + ";" + numStr(self                                                                               .total_power_export_t1_kwh) + ";" + numStr(self.total_power_export_t2_kwh) + ";" + numStr(self.import_active_power_w) + ";" + numStr(self.export_active_power_                                                                               w), True)
             except:
                 Domoticz.Error("Failed to update device id " + str(self.total_power_id))
 
