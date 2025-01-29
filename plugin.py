@@ -149,11 +149,11 @@ class BasePlugin:
                 self.total_power_import_t2_kwh = 0
                 self.total_power_export_t2_kwh = 0
 
-            self.active_power_w = Data['active_power_w'] * self.correction_factor
+            self.active_power_w = Data['active_power_w'] * self.correction_factor / 10
 
-            if ( 'active_power_l1_w' in Data ): self.active_power_l1_w = Data['active_power_l1_w'] * self.correction_factor
-            if ( 'active_power_l2_w' in Data ): self.active_power_l2_w = Data['active_power_l2_w'] * self.correction_factor
-            if ( 'active_power_l3_w' in Data ): self.active_power_l3_w = Data['active_power_l3_w'] * self.correction_factor
+            if ( 'active_power_l1_w' in Data ): self.active_power_l1_w = Data['active_power_l1_w'] * self.correction_factor / 10
+            if ( 'active_power_l2_w' in Data ): self.active_power_l2_w = Data['active_power_l2_w'] * self.correction_factor / 10
+            if ( 'active_power_l3_w' in Data ): self.active_power_l3_w = Data['active_power_l3_w'] * self.correction_factor / 10
             if ( 'active_voltage_l1_v' in Data ): self.active_voltage_l1_v = float(Data['active_voltage_l1_v'])
             if ( 'active_voltage_l2_v' in Data ): self.active_voltage_l2_v = float(Data['active_voltage_l2_v'])
             if ( 'active_voltage_l3_v' in Data ): self.active_voltage_l3_v = float(Data['active_voltage_l3_v'])
